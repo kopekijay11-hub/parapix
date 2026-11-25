@@ -1,7 +1,7 @@
 import json, time, os, subprocess, sys
 from datetime import datetime, timezone
 import numpy as np
-sys.path.insert(0, "/home/joshua/parapix/src")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "src"))
 from parapix.sim import iid_noise, ar1, student_t_noise, vol_cluster, injected_edge
 from parapix.permtest import permutation_pvalue
 from parapix.bootstrap import ci_mean, ci_sharpe
@@ -9,7 +9,7 @@ from parapix.evaluate import evaluate_mean
 from parapix.prereg import PreReg
 from parapix.verdict import verdict
 
-OUT="/home/joshua/parapix/results"
+OUT=os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
 os.makedirs(OUT, exist_ok=True)
 master=20261125
 sigma=0.01
