@@ -120,97 +120,95 @@ def arm_dsr_calibration_ar1(out_dir):
     return result
 
 
-def arm_selection_experiment(out_dir, n_trials, n_reps=R_SELECTION):
+def arm_selection_experiment(out_dir, n_trials, v_rule="sample", n_reps=R_SELECTION):
     """Selection experiment: independent null trials, analytic DSR only.
 
-    Runs each N twice: V from sample std across trials, and V from true sigma.
+    Runs one V rule: "sample" (V from sample std across trials) or
+    "true_sigma" (V = 1/(n_obs-1)).
     Readouts: mean(SR_max) - SR0 in SE units, median DSR of max,
     fraction with DSR > 0.95 (vs prediction P = 1 - Phi(c)^N).
     """
-    rng = np.random.default_rng(MASTER + 100 + n_trials)
+    rng = np.random.default_rng(MASTER + 100 + n_trials + (0 if v_rule == "sample" else 1000))
     se = SE
     # Prediction P = 1 - Phi(c)^N, c = SR0/SE + 1.645
-    for v_rule in ["sample", "true_sigma"]:
-        results = []
-        max_srs = []
-        dsrs = []
-        dsrs_true = [] if v_rule == "sample" else None
-        count_gt_095 = 0
-        count_gt_095_true = 0
+    results = []
+    max_srs = []
+    dsrs = []
+    count_gt_095 = 0
 
-        for rep in range(n_reps):
-            # Generate N independent null series
-            series = rng.normal(0.0, SIGMA, size=(n_trials, N_OBS))
-            srs = series.mean(axis=1) / series.std(axis=1, ddof=1)
-            srs = np.where(np.isfinite(srs), srs, 0.0)
+    for rep in range(n_reps):
+        # Generate N independent null series
+        series = rng.normal(0.0, SIGMA, size=(n_trials, N_OBS))
+        srs = series.mean(axis=1) / series.std(axis=1, ddof=1)
+        srs = np.where(np.isfinite(srs), srs, 0.0)
 
-            if v_rule == "sample":
-                v = float(np.var(srs, ddof=1)) if n_trials > 1 else 0.0
-                trial_sr_std = math.sqrt(v) if v > 0 else 0.0
-            else:
-                trial_sr_std = se
+        if v_rule == "sample":
+            v = float(np.var(srs, ddof=1)) if n_trials > 1 else 0.0
+            trial_sr_std = math.sqrt(v) if v > 0 else 0.0
+        else:
+            trial_sr_std = se
 
-            sr0 = expected_max_sharpe(n_trials, trial_sr_std)
-            idx_max = int(np.argmax(srs))
-            sr_max = float(srs[idx_max])
+        sr0 = expected_max_sharpe(n_trials, trial_sr_std)
+        idx_max = int(np.argmax(srs))
+        sr_max = float(srs[idx_max])
 
-            # DSR for the max trial
-            r_max = series[idx_max]
-            stats = sharpe_stats(r_max)
-            d = dsr(stats["sr"], N_OBS, stats["skew"], stats["kurtosis"], n_trials, trial_sr_std)
+        # DSR for the max trial
+        r_max = series[idx_max]
+        stats = sharpe_stats(r_max)
+        d = dsr(stats["sr"], N_OBS, stats["skew"], stats["kurtosis"], n_trials, trial_sr_std)
 
-            max_srs.append(sr_max)
-            dsrs.append(d)
-            results.append({
-                "rep": rep, "sr_max": sr_max, "sr0": sr0,
-                "dsr": d, "trial_sr_std": trial_sr_std,
-                "v_rule": v_rule,
-                "dsr_gt_095": d > 0.95 if not math.isnan(d) else False,
-            })
-            if not math.isnan(d) and d > 0.95:
-                count_gt_095 += 1
-
-        max_srs = np.array(max_srs)
-        dsrs = np.array([x for x in dsrs if not math.isnan(x)])
-        sr0_val = expected_max_sharpe(n_trials, trial_sr_std) if v_rule == "sample" else expected_max_sharpe(n_trials, se)
-
-        # mean(SR_max) - SR0 in SE units
-        mean_sr_max = float(np.mean(max_srs))
-        sr0_at_se = expected_max_sharpe(n_trials, se)
-        diff_se_units = (mean_sr_max - sr0_at_se) / se
-
-        # median DSR of max
-        median_dsr = float(np.median(dsrs)) if len(dsrs) > 0 else float("nan")
-
-        # fraction with DSR > 0.95
-        frac_gt_095 = count_gt_095 / n_reps
-
-        # Prediction P = 1 - Phi(c)^N
-        c = sr0_at_se / se + 1.645
-        from scipy.stats import norm
-        p_pred = 1.0 - norm.cdf(c) ** n_trials
-
-        result = {
-            "arm": f"selection_N{n_trials}_{v_rule}",
-            "n_trials": n_trials,
-            "n_reps": n_reps,
+        max_srs.append(sr_max)
+        dsrs.append(d)
+        results.append({
+            "rep": rep, "sr_max": sr_max, "sr0": sr0,
+            "dsr": d, "trial_sr_std": trial_sr_std,
             "v_rule": v_rule,
-            "mean_sr_max": mean_sr_max,
-            "sr0": sr0_val,
-            "diff_se_units": diff_se_units,
-            "median_dsr": median_dsr,
-            "fraction_dsr_gt_095": frac_gt_095,
-            "prediction_p": p_pred,
-            "prediction_note": "P = 1 - Phi(c)^N, c = SR0/SE + 1.645",
-        }
-        _ckpt(out_dir, f"selection_N{n_trials}_{v_rule}", result)
-        print(
-            f"[sel/N={n_trials}/{v_rule}] "
-            f"mean(SR_max)-SR0 in SE = {diff_se_units:+.3f}, "
-            f"median DSR = {median_dsr:.3f}, "
-            f"frac DSR>0.95 = {frac_gt_095:.4f} (pred P = {p_pred:.4f})"
-        )
-        return result
+            "dsr_gt_095": d > 0.95 if not math.isnan(d) else False,
+        })
+        if not math.isnan(d) and d > 0.95:
+            count_gt_095 += 1
+
+    max_srs = np.array(max_srs)
+    dsrs = np.array([x for x in dsrs if not math.isnan(x)])
+    sr0_val = expected_max_sharpe(n_trials, trial_sr_std) if v_rule == "sample" else expected_max_sharpe(n_trials, se)
+
+    # mean(SR_max) - SR0 in SE units
+    mean_sr_max = float(np.mean(max_srs))
+    sr0_at_se = expected_max_sharpe(n_trials, se)
+    diff_se_units = (mean_sr_max - sr0_at_se) / se
+
+    # median DSR of max
+    median_dsr = float(np.median(dsrs)) if len(dsrs) > 0 else float("nan")
+
+    # fraction with DSR > 0.95
+    frac_gt_095 = count_gt_095 / n_reps
+
+    # Prediction P = 1 - Phi(c)^N
+    c = sr0_at_se / se + 1.645
+    from scipy.stats import norm
+    p_pred = 1.0 - norm.cdf(c) ** n_trials
+
+    result = {
+        "arm": f"selection_N{n_trials}_{v_rule}",
+        "n_trials": n_trials,
+        "n_reps": n_reps,
+        "v_rule": v_rule,
+        "mean_sr_max": mean_sr_max,
+        "sr0": sr0_val,
+        "diff_se_units": diff_se_units,
+        "median_dsr": median_dsr,
+        "fraction_dsr_gt_095": frac_gt_095,
+        "prediction_p": p_pred,
+        "prediction_note": "P = 1 - Phi(c)^N, c = SR0/SE + 1.645",
+    }
+    _ckpt(out_dir, f"selection_N{n_trials}_{v_rule}", result)
+    print(
+        f"[sel/N={n_trials}/{v_rule}] "
+        f"mean(SR_max)-SR0 in SE = {diff_se_units:+.3f}, "
+        f"median DSR = {median_dsr:.3f}, "
+        f"frac DSR>0.95 = {frac_gt_095:.4f} (pred P = {p_pred:.4f})"
+    )
+    return result
 
 
 def arm_shared_factor(out_dir, n_trials=10, rho=0.3, n_reps=R_SELECTION):
