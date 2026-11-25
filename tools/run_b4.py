@@ -436,16 +436,28 @@ def run_b4(out_dir=RESULTS_DIR, unbound=False, repo="."):
         raise RuntimeError("Tree cleanliness changed during run")
 
     final = {
+        # Binding fields at top level (required by verify_binding)
+        "git_sha": start_sha,
+        "dirty": start_dirty,
+        "untracked_files": start_untracked,
+        "runner_sha256": start_runner_hash,
+        "command_line": " ".join(sys.argv),
+        "python_version": sys.version,
+        "numpy_version": np.__version__,
+        "scipy_version": __import__("scipy").__version__,
+        "pip_freeze_hash": pip_freeze_hash(),
+        "PYTHONHASHSEED": os.environ.get("PYTHONHASHSEED"),
+        "blas_threads": blas_threads(),
+        "start_time_utc": start_time.strftime("%Y%m%dT%H%M%SZ"),
+        "end_time_utc": end_time.strftime("%Y%m%dT%H%M%SZ"),
+        "wall_clock_seconds": wall_clock,
+        "unbound": bool(unbound),
         "binding": binding_fields(repo, extra={
             "start_sha": start_sha,
             "start_dirty": start_dirty,
             "start_untracked": start_untracked,
             "start_runner_hash": start_runner_hash,
         }),
-        "start_time_utc": start_time.strftime("%Y%m%dT%H%M%SZ"),
-        "end_time_utc": end_time.strftime("%Y%m%dT%H%M%SZ"),
-        "wall_clock_seconds": wall_clock,
-        "unbound": bool(unbound),
         "arms": {
             "dsr_calib_iid_null_N1": cal_iid,
             "dsr_calib_ar1_null_N1": cal_ar1,
@@ -459,8 +471,10 @@ def run_b4(out_dir=RESULTS_DIR, unbound=False, repo="."):
         },
     }
     if unbound:
+        final["binding_status"] = "UNBOUND"
         final["binding"]["binding_status"] = "UNBOUND"
     else:
+        final["binding_status"] = "BOUND"
         final["binding"]["binding_status"] = "BOUND"
 
     ts = end_time.strftime("%Y%m%dT%H%M%SZ")
