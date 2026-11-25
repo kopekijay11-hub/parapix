@@ -1,0 +1,43 @@
+{
+  "manifest_type": "b4_selfvalidation_v3_bound",
+  "created_utc": "2026-11-25T23:30:00Z",
+  "bound_git_sha": "1083367616e584426de194f8b3b9ddc131374ce7",
+  "artifacts": [
+    {
+      "filename": "results/selfvalidation_v3_20261125T232916Z.json",
+      "sha256": "7f8c70faceffc7f99675a0da886dd759e24e6a10f0b0e4028e1f737f6ca838a7",
+      "binding_status": "BOUND",
+      "git_sha": "1083367616e584426de194f8b3b9ddc131374ce7",
+      "runner_sha256": "2408972484feb97f55247705c738ec1af36863ca02fd97547cdf2d6326f432d1"
+    }
+  ],
+  "arms": [
+    "dsr_calib_iid_null_N1",
+    "dsr_calib_ar1_null_N1",
+    "selection_N10_sample",
+    "selection_N10_true_sigma",
+    "selection_N100_sample",
+    "selection_N100_true_sigma",
+    "shared_factor_N10_rho0.3",
+    "positive_control",
+    "ci_probes"
+  ],
+  "pre_registered_predictions": {
+    "dsr_calib_iid_null_N1": "fraction DSR>0.95 ~ 0.05",
+    "dsr_calib_ar1_null_N1": "fraction DSR>0.95 ~ 0.114",
+    "selection_N10": "median DSR ~0.5; frac DSR>0.95 vs P = 1 - Phi(c)^N ~0.0064",
+    "selection_N100": "median DSR ~0.5; frac DSR>0.95 vs P = 1 - Phi(c)^N ~0.0015",
+    "positive_control": "DSR PASS fraction ~1.0 at N=1 and N=10 (SR=0.5)"
+  },
+  "measured_rates": {
+    "dsr_calib_iid_null_N1": "0.0400",
+    "dsr_calib_ar1_null_N1": "0.1260",
+    "selection_N10_sample": "frac DSR>0.95 = 0.0005 (pred P = 0.0064)",
+    "selection_N10_true_sigma": "frac DSR>0.95 = 0.0057 (pred P = 0.0064)",
+    "selection_N100_sample": "frac DSR>0.95 = 0.0008 (pred P = 0.0015)",
+    "selection_N100_true_sigma": "frac DSR>0.95 = 0.0010 (pred P = 0.0015)",
+    "shared_factor_N10_rho0.3": "frac DSR>0.95 = 0.0081 (secondary arm)",
+    "positive_control_N1": "1.000",
+    "positive_control_N10": "1.000"
+  }
+}
