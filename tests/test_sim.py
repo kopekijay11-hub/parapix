@@ -1,5 +1,5 @@
 import numpy as np
-from parallax.sim import iid_noise, injected_edge, ar1
+from parapix.sim import iid_noise, injected_edge, ar1
 
 def test_repro_iid():
     a = iid_noise(100, 42, 1.0)

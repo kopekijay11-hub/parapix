@@ -1,5 +1,5 @@
 import json, glob, os
-from parallax.selfvalidate import run
+from parapix.selfvalidate import run
 
 def test_deterministic():
     a = run(5, 50, 0.3, 0.05, 1)

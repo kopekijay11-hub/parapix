@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from parallax.prereg import PreReg, to_json, from_json, validate, content_hash, check_prereg_precedes_results
+from parapix.prereg import PreReg, to_json, from_json, validate, content_hash, check_prereg_precedes_results
 
 
 def make_prereg(**kw):

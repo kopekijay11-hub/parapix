@@ -1,5 +1,5 @@
-from parallax.prereg import PreReg
-from parallax.verdict import verdict
+from parapix.prereg import PreReg
+from parapix.verdict import verdict
 
 def base_prereg():
     return PreReg(run_id="r", created_utc="2026-01-01T00:00:00+00:00", hypothesis="h", metric="m",
