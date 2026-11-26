@@ -1,4 +1,4 @@
-Parapix v0.1.0 — a toolkit for testing the statistical significance of trading strategy returns. It provides block-bootstrap confidence intervals for mean and Sharpe ratio (with iid and dependent data), a permutation test for the null of zero skill, and the Deflated Sharpe Ratio (DSR) for multiple-testing correction.
+Parapix v0.2.0 — a toolkit for testing the statistical significance of trading strategy returns. It provides block-bootstrap confidence intervals for mean and Sharpe ratio (with iid and dependent data), a permutation test for the null of zero skill, and the Deflated Sharpe Ratio (DSR) for multiple-testing correction.
 
 ## v0.1 validation bars
 
@@ -52,7 +52,7 @@ The Deflated Sharpe Ratio (DSR) corrects for two sources of performance inflatio
 where V is the variance across trials of estimated per-period Sharpes, γ_E ≈ 0.5772 is the Euler-Mascheroni constant, γ₃ is skewness, γ₄ is raw kurtosis (3 for a Normal), and n is the number of return observations.
 
 Assumptions, plainly stated:
-- Trials are independent draws from a common distribution. Correlated trials (e.g. a grid search over a smooth parameter surface) violate this; the effective N is smaller than the raw count.
+- Trials are independent draws from a common distribution. Correlated trials (e.g. a grid search over a smooth parameter surface) violate this; the effective N is smaller than the raw count. The rho=0.3 arm in the DSR calibration rider read 0.0081 vs the 0.05 nominal (WO-003 bound artifact) — correlated trials deflate **less** than independence implies, with the effective-N caveat.
 - Returns are iid. The analytic SE understates the true SE under autocorrelation: at AR(1) φ=0.3 the variance inflation is ~1.857×, so the SE is understated by ~1.36× (first order). DSR against SR₀ is therefore not a size-calibrated FWER test under dependence.
 
 Sources: Bailey & López de Prado, "The Deflated Sharpe Ratio" (2014), Eq. (1)-(2); Bailey & López de Prado, "The Sharpe Ratio Efficient Frontier" (2012), Eq. (11). Implementation: src/parapix/dsr.py.
@@ -60,6 +60,23 @@ Sources: Bailey & López de Prado, "The Deflated Sharpe Ratio" (2014), Eq. (1)-(
 ## Permutation test assumption
 
 The sign-flip permutation test assumes exchangeability: under the null the returns are symmetric about zero and signs are independent of magnitudes. It is robust to non-normality, not to autocorrelation/dependence. Under serial dependence its false-positive rate inflates, because permuting the series destroys the dependence structure the null relies on; a nominal level (e.g. 5%) can therefore be exceeded under dependence. See src/parapix/permtest.py.
+
+## Conjunction semantics (v0.2)
+
+**Mean path:** The confidence interval is **uncorrected for multiplicity** (n_candidates_tried) and guards effect size; the Bonferroni correction lives entirely in `corrected_p`. A PASS requires both `ci_low > minimum_effect` AND `corrected_p <= alpha`.
+
+**Sharpe path:** The deflation (SR₀ shift) lives entirely in `corrected_p` (via DSR). The CI condition tests the **raw-scale** interval (`ci_raw_low`, `ci_raw_high`) against `minimum_effect`. A PASS requires both `ci_raw_low > minimum_effect` AND `corrected_p <= alpha`. The deflated CI (`ci_low`, `ci_high`) is reported for provenance but does not gate the verdict.
+
+## How to misuse this
+
+- **Peeking before registering:** If you look at results before writing the pre-registration, the n_candidates_tried and n_trials you report are fictitious. The prereg hash binds results to a prereg, but it cannot detect that the prereg was written *after* the fact.
+- **Undercounting n_candidates_tried / n_trials:** These are self-reported. If you tried 50 strategies but report 1, the Bonferroni/DSR correction is meaningless. This is the real weak link.
+- **Feeding non-exchangeable returns to the permutation test:** The sign-flip test assumes exchangeability under the null. Autocorrelated returns, volatility clustering, or any dependence structure will inflate the false-positive rate.
+- **Ignoring the effective-N caveat:** Correlated trials (e.g., a smooth grid search) have an effective N smaller than the raw count. Reporting the raw count overstates the correction.
+
+## API stability statement
+
+**v0.x:** The pre-registration / verdict contracts (PreReg, Results, verdict() return) are the stable core. Other surfaces (bootstrap internals, simulation helpers, self-validation runner) may change without deprecation cycles. All breaking changes are recorded in the CHANGELOG.
 
 ## WO-003b Phase B: Sharpe CI Under Dependence — Coverage Reconciliation
 

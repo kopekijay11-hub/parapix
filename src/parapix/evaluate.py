@@ -1,11 +1,36 @@
 import math
+from dataclasses import dataclass
+from typing import Literal, Optional
 
 from parapix.bootstrap import ci_mean, ci_sharpe
 from parapix.dsr import dsr, expected_max_sharpe, sharpe_stats
 from parapix.permtest import permutation_pvalue
+from parapix.prereg import PreReg, content_hash
 
 
-def evaluate_mean(returns, prereg, n_perm, n_boot):
+@dataclass(frozen=True)
+class Results:
+    estimate: float
+    ci_low: float
+    ci_high: float
+    ci_level: float
+    n_obs: int
+    corrected_p: float
+    p_method: Literal["signflip_permutation_bonferroni", "deflated_sharpe"]
+    prereg_hash: str
+    p_raw: Optional[float] = None
+    sr_raw: Optional[float] = None
+    sr0: Optional[float] = None
+    dsr: Optional[float] = None
+    ci_raw_low: Optional[float] = None
+    ci_raw_high: Optional[float] = None
+    trial_sr_std: Optional[float] = None
+    trial_sr_rule: Optional[Literal["sample", "null_theoretical"]] = None
+    skew: Optional[float] = None
+    kurtosis: Optional[float] = None
+
+
+def evaluate_mean(returns, prereg: PreReg, n_perm, n_boot):
     if n_perm < prereg.n_candidates_tried / prereg.alpha - 1:
         raise ValueError("resolution: n_perm too small for Bonferroni")
     import numpy as np
@@ -16,19 +41,21 @@ def evaluate_mean(returns, prereg, n_perm, n_boot):
     )
     p_raw = permutation_pvalue(returns, prereg.seeds["permutation"], n_perm=n_perm)
     corrected_p = min(1.0, p_raw * prereg.n_candidates_tried)
-    return {
-        "estimate": estimate,
-        "ci_low": ci_low,
-        "ci_high": ci_high,
-        "ci_level": prereg.bars["ci_level"],
-        "n_obs": len(returns),
-        "corrected_p": corrected_p,
-        "p_raw": p_raw,
-        "p_method": "signflip_permutation_bonferroni",
-    }
+    prereg_hash = content_hash(prereg)
+    return Results(
+        estimate=estimate,
+        ci_low=ci_low,
+        ci_high=ci_high,
+        ci_level=prereg.bars["ci_level"],
+        n_obs=len(returns),
+        corrected_p=corrected_p,
+        p_method="signflip_permutation_bonferroni",
+        prereg_hash=prereg_hash,
+        p_raw=p_raw,
+    )
 
 
-def evaluate_sharpe(returns, prereg, trial_sharpes=None):
+def evaluate_sharpe(returns, prereg: PreReg, trial_sharpes=None):
     """Deflated Sharpe Ratio (DSR) evaluation.
 
     N comes from prereg.n_trials — never a free caller parameter.
@@ -96,21 +123,23 @@ def evaluate_sharpe(returns, prereg, trial_sharpes=None):
     d = dsr(sr_raw, n_obs, skew, kurt, n_trials, trial_sr_std)
     corrected_p = 1.0 - d if not math.isnan(d) else float("nan")
 
-    return {
-        "estimate": estimate,
-        "ci_low": ci_low,
-        "ci_high": ci_high,
-        "ci_level": level,
-        "n_obs": n_obs,
-        "corrected_p": corrected_p,
-        "sr_raw": sr_raw,
-        "sr0": sr0,
-        "dsr": d,
-        "ci_raw_low": ci_raw_low,
-        "ci_raw_high": ci_raw_high,
-        "trial_sr_std": trial_sr_std,
-        "trial_sr_rule": trial_sr_rule,
-        "p_method": "deflated_sharpe",
-        "skew": skew,
-        "kurtosis": kurt,
-    }
+    prereg_hash = content_hash(prereg)
+    return Results(
+        estimate=estimate,
+        ci_low=ci_low,
+        ci_high=ci_high,
+        ci_level=level,
+        n_obs=n_obs,
+        corrected_p=corrected_p,
+        p_method="deflated_sharpe",
+        prereg_hash=prereg_hash,
+        sr_raw=sr_raw,
+        sr0=sr0,
+        dsr=d,
+        ci_raw_low=ci_raw_low,
+        ci_raw_high=ci_raw_high,
+        trial_sr_std=trial_sr_std,
+        trial_sr_rule=trial_sr_rule,
+        skew=skew,
+        kurtosis=kurt,
+    )
