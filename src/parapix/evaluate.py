@@ -128,6 +128,13 @@ def evaluate_sharpe(returns, prereg: PreReg, trial_sharpes=None, n_boot: int = 1
     d = dsr(sr_raw, n_obs, skew, kurt, n_trials, trial_sr_std)
     corrected_p = 1.0 - d if not math.isnan(d) else float("nan")
 
+    warnings = ()
+    if trial_sr_rule == "sample" and n_trials < 250:
+        warnings = (
+            "small-N sample-V: PASS conservative",
+            "under sample-V at small N a PASS is conservative and a FAIL is weak evidence",
+        )
+
     prereg_hash = content_hash(prereg)
     return Results(
         estimate=estimate,
@@ -147,4 +154,5 @@ def evaluate_sharpe(returns, prereg: PreReg, trial_sharpes=None, n_boot: int = 1
         trial_sr_rule=trial_sr_rule,
         skew=skew,
         kurtosis=kurt,
+        warnings=warnings,
     )

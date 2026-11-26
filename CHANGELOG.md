@@ -2,6 +2,9 @@
 
 ## 0.2.0 (unreleased)
 
+### New features
+- **Worked example (WO-007)**: `examples/worked_example.py` runs end-to-end on synthetic data — the best-of-N trap (FAIL), the prereg/DSR correction, a planted edge (PASS, true Sharpe 0.5), and the small-N sample-V warning. README "Worked example" section reproduces its output verbatim.
+
 ### Breaking changes
 - **Typed Results**: `evaluate_mean` and `evaluate_sharpe` now return a `Results` dataclass instead of a plain dict. `verdict()` requires a `Results` object and raises `TypeError` if passed a dict.
 - **Verdict return**: `verdict()` now returns `{"verdict": "PASS|FAIL", "reasons": [...], "prereg_hash": str, "git_sha": str}`.

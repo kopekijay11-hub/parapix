@@ -180,3 +180,44 @@ Return-series bridge: N=10 sample-V exceedance at 2M (0.0004895) vs 400k (0.0005
 ### (A4) Floor rule and (A5) warning ladder
 
 A4 floor (paired common-random-number draws, one-sided 99% lower bound on (a)/(b) ≥ 0.5): **floor N = 250** (lwr99 0.680 at N=250; 0.482 at N=100 is below 0.5), gap 150 to the next grid point below. A5 ladder: the floor branch fires → **a warnings entry ships, applying below N=250**; direction: *under sample-V at small N a PASS is conservative and a FAIL is weak evidence.* The power branch does not fire. The `Results.warnings` / `verdict()` pass-through (v0.2, B4) is the channel that carries this caution to callers.
+## Worked example
+
+Run:
+
+    python examples/worked_example.py
+
+What it shows: a deterministic, synthetic (no network) end-to-end pass over Parapix —
+the uncorrected best-of-N trap, the prereg/DSR correction that rejects it, a planted
+edge that passes, and the small-N sample-V warning.
+
+Output (verbatim from an actual run of the committed script):
+
+```
+========================================================================
+Parapix worked example (synthetic data)
+planted true Sharpe = 0.5
+N candidates = 20 (19 null + 1 planted), n_obs = 1000
+========================================================================
+
+(a) THE TRAP
+    best-of-19 nulls raw Sharpe = 0.0661
+    naive read: a positive raw Sharpe among the best of many nulls
+    looks like an edge, even though every series is pure noise.
+
+(b) THE CORRECTION
+    prereg n_trials = 20 (written before evaluation)
+    corrected_p = 0.4247, DSR = 0.5753, SR0 = 0.0601
+    verdict = FAIL  (null best must FAIL)
+
+(c) THE REAL ONE
+    planted raw Sharpe = 0.5257 (true 0.5)
+    corrected_p = 0.0000, DSR = 1.0000, SR0 = 0.0601
+    verdict = PASS  (planted edge must PASS)
+
+(d) THE WARNING
+    sample-V rule, n_trials = 5 (small N)
+    verdict = FAIL
+    warnings = ['small-N sample-V: PASS conservative', 'under sample-V at small N a PASS is conservative and a FAIL is weak evidence']
+
+elapsed = 6.3s
+```
