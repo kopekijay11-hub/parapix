@@ -323,12 +323,11 @@ def _run_coverage_arm(out_dir, metric, kind, mu, true_val, n_series, n_boot,
             pair_key = f"{m1}_vs_{m2}"
             discord = {}
             for level in COVERAGE_LEVELS:
-                lk = str(level)
                 b_count = 0  # m1 covers, m2 doesn't
                 c_count = 0  # m1 doesn't, m2 covers
                 for i in range(n_series):
-                    c1 = series_data[i][m1][lk]["covers"]
-                    c2 = series_data[i][m2][lk]["covers"]
+                    c1 = series_data[i][m1][level]["covers"]
+                    c2 = series_data[i][m2][level]["covers"]
                     if c1 and not c2:
                         b_count += 1
                     elif not c1 and c2:
