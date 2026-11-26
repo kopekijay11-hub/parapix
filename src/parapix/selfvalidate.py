@@ -258,6 +258,9 @@ def run_validation(out_dir=RESULTS_DIR, unbound=False, n_strategies=2000,
             if lo <= mu <= hi:
                 cover += 1
         mean_cov[f"{kind}_mu{mu}"] = cover / n_series
+    PHI = 0.3
+    MARGINAL_FACTOR = math.sqrt(1.0 - PHI * PHI)
+
     for kind in ["iid", "ar1"]:
         cover = 0
         for i in range(n_series):
@@ -265,11 +268,15 @@ def run_validation(out_dir=RESULTS_DIR, unbound=False, n_strategies=2000,
             seed = int(s.generate_state(1)[0])
             if kind == "iid":
                 r = injected_edge(n_obs, seed, sigma, 0.002)
+                true = 0.002 / sigma
             else:
-                base = ar1(n_obs, seed, sigma, 0.3)
+                base = ar1(n_obs, seed, sigma, PHI)
                 r = base + 0.002
+                # ar1 sigma is innovation sd; ci_sharpe uses marginal sd
+                # (sharpe_stats uses np.std ddof=1). True Sharpe = mu / marginal_sd
+                # = mu * sqrt(1-phi^2) / sigma.
+                true = 0.002 * MARGINAL_FACTOR / sigma
             lo, hi = ci_sharpe(r, 0.95, seed + 1, n_boot=n_boot)
-            true = 0.002 / sigma
             if lo <= true <= hi:
                 cover += 1
         sharpe_cov[f"{kind}_mu0.002"] = cover / n_series
