@@ -55,6 +55,15 @@ COVERAGE_LEVELS = (0.80, 0.90, 0.95, 0.99)
 Z_SCORE = {level: float(norm.ppf(1.0 - (1.0 - level) / 2.0)) for level in COVERAGE_LEVELS}
 METHODS = ("percentile", "bootstrap_se_normal", "studentized", "bca_block", "hac_delta")
 
+# Power curve settings
+POWER_N_OBS = 1000
+POWER_SIGMA = 0.01
+POWER_N_SERIES = 1000
+POWER_SR_GRID = (0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.50)
+POWER_N_BOOT = 999
+POWER_LEVEL = 0.95
+POWER_MASTER = 20261126
+
 
 # ---------------------------------------------------------------------------
 # Vectorized shared-draws block bootstrap
@@ -419,6 +428,110 @@ def run_dsr_calibration_n20000(out_dir, n_series=20000, master=MASTER):
 
 
 # ---------------------------------------------------------------------------
+# Power curve arm
+# ---------------------------------------------------------------------------
+
+def _run_power_curve_arm(out_dir, n_series=POWER_N_SERIES, n_boot=POWER_N_BOOT,
+                         master=POWER_MASTER):
+    """Run power curve: iid, N=1, evaluate_sharpe path.
+    
+    For each true Sharpe in POWER_SR_GRID, generate n_series series and
+    compute the PASS fraction (CI excludes 0). Uses the sharpe metric
+    with block bootstrap and all METHODS at POWER_LEVEL.
+    
+    Returns dict with pass_fractions per grid point and MDE (minimum
+    detectable effect = smallest grid SR with PASS >= 0.80).
+    """
+    t0 = time.time()
+    n = POWER_N_OBS
+    sigma = POWER_SIGMA
+    level = POWER_LEVEL
+    
+    pass_fractions = {}
+    per_method_results = {}
+    
+    for true_sr in POWER_SR_GRID:
+        mu = true_sr * sigma  # per-period mean return for given Sharpe
+        
+        covers_count = {method: 0 for method in METHODS}
+        total_valid = {method: 0 for method in METHODS}
+        
+        for i in range(n_series):
+            s = np.random.SeedSequence(master + 20000 + i).spawn(1)[0]
+            seed = int(s.generate_state(1)[0])
+            
+            # Generate iid returns with true Sharpe = true_sr
+            r = injected_edge(n, seed, sigma, mu)
+            
+            # Shared bootstrap
+            _, bl = _auto_block_length(r)
+            resamples = _block_bootstrap_resamples(r, seed + 1, n_boot, bl)
+            
+            boots, se_boots = _bootstrap_statistics(resamples, "sharpe")
+            
+            r_sd = float(r.std(ddof=1))
+            obs = float(r.mean() / r_sd) if r_sd > 0 else float("nan")
+            se_obs = math.sqrt((1.0 + obs**2 / 2.0) / n)
+            
+            # Degenerate resample tracking
+            deg_mask = ~np.isfinite(boots) | (se_boots <= 0) | ~np.isfinite(se_boots)
+            valid_mask = ~deg_mask
+            
+            for method in METHODS:
+                lo, hi = _compute_ci(method, boots, obs, se_obs, se_boots, r, bl, "sharpe", level)
+                if np.isfinite(lo) and np.isfinite(hi):
+                    total_valid[method] += 1
+                    # PASS = CI excludes 0 (null Sharpe = 0)
+                    if lo > 0.0 or hi < 0.0:
+                        covers_count[method] += 1
+        
+        # Aggregate PASS fractions per method
+        method_fractions = {}
+        for method in METHODS:
+            if total_valid[method] > 0:
+                method_fractions[method] = covers_count[method] / total_valid[method]
+            else:
+                method_fractions[method] = float("nan")
+        
+        # Overall PASS fraction (average across methods)
+        valid_fractions = [f for f in method_fractions.values() if np.isfinite(f)]
+        overall_pass = float(np.mean(valid_fractions)) if valid_fractions else float("nan")
+        pass_fractions[true_sr] = overall_pass
+        per_method_results[true_sr] = method_fractions
+        
+        print(f"[power/SR={true_sr:.2f}] PASS={overall_pass:.4f} "
+              f"({', '.join(f'{m}={f:.4f}' for m, f in method_fractions.items() if np.isfinite(f))})")
+    
+    # Minimum detectable effect: smallest grid SR with PASS >= 0.80
+    mde = None
+    for sr in POWER_SR_GRID:
+        if pass_fractions[sr] >= 0.80:
+            mde = sr
+            break
+    
+    wall = time.time() - t0
+    result = {
+        "arm": "power_curve_sharpe_iid",
+        "n_series": n_series,
+        "n_obs": n,
+        "sigma": sigma,
+        "n_boot": n_boot,
+        "level": level,
+        "sr_grid": list(POWER_SR_GRID),
+        "methods": list(METHODS),
+        "pass_fractions": {str(k): v for k, v in pass_fractions.items()},
+        "per_method": {str(k): v for k, v in per_method_results.items()},
+        "minimum_detectable_effect": mde,
+        "master_seed": master,
+        "wall_clock_seconds": wall,
+    }
+    
+    _ckpt(out_dir, "power_curve_sharpe_iid", result)
+    print(f"[power] MDE = {mde}, wall_clock={wall:.1f}s")
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Checkpoint / binding
 # ---------------------------------------------------------------------------
 
@@ -430,10 +543,11 @@ def _ckpt(out_dir, name, obj):
 
 
 def run_phase_b(out_dir=RESULTS_DIR, repo=".", n_series=2000, n_boot=N_BOOT,
-                master=MASTER, pilot=False):
+                master=MASTER, pilot=False, power_curve=False):
     """Run Phase B: coverage reconciliation + DSR calibration rider.
 
     If pilot=True, runs only 20 series per arm for timing projection.
+    If power_curve=True, runs the power curve arm instead of coverage/DSR.
     """
     start_time = datetime.now(timezone.utc)
     t0 = time.time()
@@ -447,6 +561,69 @@ def run_phase_b(out_dir=RESULTS_DIR, repo=".", n_series=2000, n_boot=N_BOOT,
             "Commit the runner first (STEP 1), then run."
         )
     start_runner_hash = runner_sha256(repo)
+
+    if power_curve:
+        power_result = _run_power_curve_arm(out_dir)
+        
+        end_time = datetime.now(timezone.utc)
+        wall_clock = time.time() - t0
+
+        # Binding integrity re-check
+        end_sha, end_dirty, end_untracked = git_info(repo)
+        if end_sha != start_sha:
+            raise RuntimeError(f"HEAD changed during run: {start_sha} -> {end_sha}")
+        if end_dirty != start_dirty or end_untracked != start_untracked:
+            raise RuntimeError("Tree cleanliness changed during run")
+
+        final = {
+            "git_sha": start_sha,
+            "dirty": start_dirty,
+            "untracked_files": start_untracked,
+            "runner_sha256": start_runner_hash,
+            "command_line": " ".join(sys.argv),
+            "python_version": sys.version,
+            "numpy_version": np.__version__,
+            "scipy_version": __import__("scipy").__version__,
+            "pip_freeze_hash": hashlib.sha256(
+                subprocess.run([sys.executable, "-m", "pip", "freeze"],
+                               capture_output=True, text=True).stdout.encode("utf-8")
+            ).hexdigest(),
+            "PYTHONHASHSEED": os.environ.get("PYTHONHASHSEED"),
+            "start_time_utc": start_time.strftime("%Y%m%dT%H%M%SZ"),
+            "end_time_utc": end_time.strftime("%Y%m%dT%H%M%SZ"),
+            "wall_clock_seconds": wall_clock,
+            "n_series": POWER_N_SERIES,
+            "n_obs": POWER_N_OBS,
+            "sigma": POWER_SIGMA,
+            "n_boot": POWER_N_BOOT,
+            "level": POWER_LEVEL,
+            "sr_grid": list(POWER_SR_GRID),
+            "methods": list(METHODS),
+            "master_seed": POWER_MASTER,
+            "binding": binding_fields(repo, extra={
+                "start_sha": start_sha,
+                "start_dirty": start_dirty,
+                "start_untracked": start_untracked,
+            }),
+            "binding_status": "BOUND",
+            "power_curve": power_result,
+        }
+
+        ts = end_time.strftime("%Y%m%dT%H%M%SZ")
+        path = os.path.join(out_dir, f"selfvalidation_phaseb_power_{ts}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(final, f, sort_keys=True, indent=2)
+
+        print(f"\nArtifact: {path}")
+        print(f"Binding: BOUND (dirty={start_dirty})")
+        print(f"git_sha: {final['git_sha']}")
+        print(f"Wall clock: {wall_clock:.1f}s")
+        print(f"Power curve MDE: {power_result['minimum_detectable_effect']}")
+
+        ok, reason = verify_binding(final, repo)
+        print(f"Binding verification: {'PASS' if ok else 'FAIL'} - {reason}")
+
+        return final, path
 
     # Define arms
     arms = []
@@ -565,12 +742,14 @@ def main():
     parser = argparse.ArgumentParser(description="WO-003b Phase B run")
     parser.add_argument("--pilot", action="store_true",
                         help="Run pilot with 20 series per arm for timing projection")
+    parser.add_argument("--power-curve", action="store_true",
+                        help="Run power curve arm (iid, N=1, evaluate_sharpe)")
     parser.add_argument("--out-dir", default=RESULTS_DIR)
     args = parser.parse_args()
 
     repo = "."
     enforce_clean_tree(repo=repo)
-    run_phase_b(out_dir=args.out_dir, repo=repo, pilot=args.pilot)
+    run_phase_b(out_dir=args.out_dir, repo=repo, pilot=args.pilot, power_curve=args.power_curve)
 
 
 if __name__ == "__main__":
