@@ -1,0 +1,35 @@
+{
+  "bootstrap_coverage": {
+    "mean": {
+      "ar1_mu0.0": 0.941,
+      "ar1_mu0.002": 0.941,
+      "iid_mu0.0": 0.953,
+      "iid_mu0.002": 0.953
+    },
+    "n_boot": 999,
+    "n_obs": 1000,
+    "n_series": 1000,
+    "sharpe": {
+      "ar1_mu0.002": 0.925,
+      "iid_mu0.002": 0.952
+    }
+  },
+  "convention": "v2 permutation rates are one-sided",
+  "end_to_end_fpr": {
+    "ar1": 0.0,
+    "iid": 0.0,
+    "student_t": 0.0,
+    "vol_cluster": 0.0
+  },
+  "permutation_fpr": {
+    "ar1_fpr": 0.111,
+    "iid_fpr": 0.0575,
+    "mc_se_ar1": 0.007024208140424087,
+    "mc_se_iid": 0.005205465877325487,
+    "n_obs": 1000,
+    "n_perm": 999,
+    "n_strategies": 2000
+  },
+  "python_version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "wall_clock_seconds": 11082.619304418564
+}
