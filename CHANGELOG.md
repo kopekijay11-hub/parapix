@@ -19,6 +19,9 @@
 - New tests: hash match/mismatch/missing, dict rejection, Sharpe raw-CI pinning test, Results round-trip.
 - All existing tests migrated to `Results` dataclass.
 
+### CI
+- GitHub Actions workflow (`.github/workflows/ci.yml`): suite runs on every push/PR; `tests-arch` job installs `arch==6.2.2` so the block-length comparison test runs and passes.
+
 ## Unreleased
 - Foundation: repo, pre-registration machinery, verdict logic, seeded synthetic data, self-validation skeleton.
 - Project renamed Parallax -> Parapix.

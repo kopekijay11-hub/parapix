@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests:
+    name: Tests (no arch)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install project
+        run: pip install -e .
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+  tests-arch:
+    name: Tests (with arch)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Install project
+        run: pip install -e .
+      - name: Install arch
+        run: pip install arch==6.2.2
+      - name: Run tests
+        run: python -m pytest tests/ -q
