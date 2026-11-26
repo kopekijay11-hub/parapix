@@ -363,19 +363,33 @@ def _ckpt(name: str, obj: dict) -> str:
 # A4 floor + A5 ladder (applied to measured results)
 # ---------------------------------------------------------------------------
 def apply_a4_floor(ind_results: dict) -> dict:
-    """Smallest grid N s.t. every grid N'>=N has ratio_lwr99 >= 0.5."""
-    by_n = {r["N"]: r for r in ind_results}
+    """Smallest grid N s.t. every grid N'>=N has ratio_lwr99 >= 0.5.
+
+    Recomputes the one-sided 99% lower bound from the raw paired counts
+    (count_a, count_b, count_ab, R) so it is correct regardless of any stored
+    per-cell value.
+    """
+    by_n = {}
+    for r in ind_results:
+        N, R = r["N"], r["R"]
+        pa, pb, pab = r["count_a"] / R, r["count_b"] / R, r["count_ab"] / R
+        cov_ab = pab - pa * pb
+        if pa > 0 and pb > 0:
+            var = ((1.0 - pa) / (R * pa) + (1.0 - pb) / (R * pb)
+                   - 2.0 * cov_ab / (R * pa * pb))
+            lwr = math.exp(math.log(pa / pb) - Z_99 * math.sqrt(var)) if var > 0 else float("nan")
+        else:
+            lwr = float("nan")
+        by_n[N] = {"ratio": pa / pb if pb > 0 else float("nan"), "lwr99": lwr}
     qualifying = []
     for N in GRID:
-        ok = all(by_n[n]["ratio_a_over_b_lwr99"] >= 0.5 for n in GRID if n >= N)
+        ok = all(by_n[n]["lwr99"] >= 0.5 for n in GRID if n >= N)
         if ok:
             qualifying.append(N)
     floor = min(qualifying) if qualifying else None
     below = [n for n in GRID if floor is not None and n < floor]
     gap_to_below = (floor - max(below)) if (floor is not None and below) else None
-    return {"floor_N": floor, "gap_to_next_below": gap_to_below,
-            "per_N": {n: {"ratio": by_n[n]["ratio_a_over_b"],
-                          "lwr99": by_n[n]["ratio_a_over_b_lwr99"]} for n in GRID}}
+    return {"floor_N": floor, "gap_to_next_below": gap_to_below, "per_N": by_n}
 
 
 def apply_a5_ladder(floor: dict, power_results: list) -> dict:
@@ -439,6 +453,18 @@ def run(out_dir=RESULTS_DIR, scale=1.0, cells_filter=None, workers=6,
             print(f"  [{name}] done ({res.get('wall_clock_seconds', 0):.1f}s) {_brief(res)}")
 
     # --- derived: decomposition, A4 floor, A5 ladder, convergence ---
+    # Recompute each ind cell's lwr99 from raw counts (idempotent; fixes any
+    # stale per-cell value carried in a checkpoint from an earlier code path).
+    for r in results.values():
+        if "count_a" in r and r.get("R"):
+            R = r["R"]
+            pa, pb, pab = r["count_a"] / R, r["count_b"] / R, r["count_ab"] / R
+            cov_ab = pab - pa * pb
+            if pa > 0 and pb > 0:
+                var = ((1.0 - pa) / (R * pa) + (1.0 - pb) / (R * pb)
+                       - 2.0 * cov_ab / (R * pa * pb))
+                r["ratio_a_over_b_lwr99"] = (math.exp(math.log(pa / pb) - Z_99 * math.sqrt(var))
+                                             if var > 0 else float("nan"))
     ind = [results[f"ind_rho0_N{N}"] for N in GRID if f"ind_rho0_N{N}" in results]
     decomp = {}
     for r in ind:
