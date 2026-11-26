@@ -332,7 +332,7 @@ def _run_coverage_arm(out_dir, metric, kind, mu, true_val, n_series, n_boot,
                         b_count += 1
                     elif not c1 and c2:
                         c_count += 1
-                discord[lk] = {"b_m1_cover_m2_no": b_count, "c_m1_no_m2_cover": c_count}
+                discord[str(level)] = {"b_m1_cover_m2_no": b_count, "c_m1_no_m2_cover": c_count}
             mcnemar[pair_key] = discord
     arm_result["mcnemar"] = mcnemar
 
