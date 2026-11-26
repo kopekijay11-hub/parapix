@@ -6,16 +6,17 @@ Every number below comes from a bound artifact with its settings recorded.
 
 | Bar | Target | Measured | Settings (bound artifact) |
 |-----|--------|----------|---------------------------|
-| False-positive rate, iid null, nominal 0.05 | within 2 SE of nominal | **0.05035** (permutation test & DSR) | n_series=20000, n_obs=1000, sigma=0.01, master_seed=20261125, artifact: `results/selfvalidation_phaseb_20261126T061103Z.json` |
+| False-positive rate, iid null, nominal 0.05 — DSR | within 2 SE of nominal | **0.05035** | n_series=20000, n_obs=1000, sigma=0.01, master_seed=20261125, Phase B rider artifact: `results/selfvalidation_phaseb_20261126T061103Z.json` |
+| False-positive rate, iid null, nominal 0.05 — permutation test | within 2 SE of nominal | **0.0575** | n_series=2000, n_obs=1000, n_perm=999, iid, WO-002 artifact: `results/selfvalidation_20261125T081205Z.json` |
 | CI coverage, iid, nominal 0.95 | >= 0.93 | **0.940–0.9485** (across all five methods) | n_series=2000, n_obs=1000, sigma=0.01, phi=0.3, n_boot=999, master_seed=20261125, artifact: same as above |
 | Power floor: true Sharpe 0.5 at n_obs=1000 | PASSes at >= 0.99 | **1.000** | Power curve artifact: `results/selfvalidation_phaseb_power_20261126T064743Z.json` |
-| Minimum detectable effect (MDE) | — | **0.10** (smallest grid SR with PASS >= 0.80) | iid, N=1, evaluate_sharpe path, n_obs=1000, sigma=0.01, n_series=1000 per grid point, SR grid {0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.50}, level=0.95, n_boot=999, master_seed=20261126, 5 methods averaged |
+| Minimum detectable effect (MDE) | — | **0.10** (smallest grid SR with PASS >= 0.80) | iid, N=1, CI-rejection power (PASS fraction averaged across percentile, bootstrap-SE normal, studentized, BCa-block, HAC delta-method), n_obs=1000, sigma=0.01, n_series=1000 per grid point, SR grid {0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.50}, level=0.95, n_boot=999, master_seed=20261126 |
 
 **Documented limitation (not a bar):** CI coverage under AR(1) phi=0.3 dependence is 0.92–0.93 at nominal 0.95 across all five methods (Phase B artifact, same as above). This is an expected limitation of block bootstrap with automatic block length at this n_obs; not a library defect.
 
 ## Power curve detail
 
-PASS fraction per grid point (average across percentile, bootstrap-SE normal, studentized, BCa-block, HAC delta-method):
+CI-rejection power: PASS fraction per grid point, averaged across the five CI methods (percentile, bootstrap-SE normal, studentized, BCa-block, HAC delta-method):
 
 | True Sharpe | PASS fraction |
 |-------------|---------------|
@@ -28,6 +29,8 @@ PASS fraction per grid point (average across percentile, bootstrap-SE normal, st
 | 0.50 | 1.0000 |
 
 Monotone non-decreasing ✓. Size at SR 0.00 = 0.0502 (within 2 SE of 0.05) ✓. Power at SR 0.50 = 1.000 (>= 0.99) ✓. MDE = 0.10.
+
+The power-floor bar itself rests on the WO-003 positive control (evaluate_sharpe, true SR 0.5, PASS 1.000).
 
 ## Scope
 
