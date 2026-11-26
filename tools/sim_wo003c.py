@@ -175,9 +175,12 @@ def cell_ind_rho0(N: int, R: int, seed: int, batch: int | None = None) -> dict:
     # A4 paired one-sided 99% lower bound on p_a/p_b (delta method on log ratio)
     p_ab = cnt_ab / R
     cov_ab = p_ab - p_a * p_b
-    var_logratio = (var_of_ind(cnt_a, R, p_a) / (p_a * p_a)
-                    + var_of_ind(cnt_b, R, p_b) / (p_b * p_b)
-                    - 2.0 * cov_ab / (p_a * p_b)) if p_a > 0 and p_b > 0 else float("nan")
+    if p_a > 0 and p_b > 0:
+        var_logratio = ((1.0 - p_a) / (R * p_a)
+                        + (1.0 - p_b) / (R * p_b)
+                        - 2.0 * cov_ab / (R * p_a * p_b))
+    else:
+        var_logratio = float("nan")
     ratio = p_a / p_b if p_b > 0 else float("nan")
     if var_logratio > 0:
         ratio_lwr99 = math.exp(math.log(ratio) - Z_99 * math.sqrt(var_logratio))
@@ -196,7 +199,7 @@ def cell_ind_rho0(N: int, R: int, seed: int, batch: int | None = None) -> dict:
 
 
 def var_of_ind(cnt: int, R: int, p: float) -> float:
-    """Var of a single-draw indicator = p(1-p); the /R is applied by caller."""
+    """Per-draw indicator variance p(1-p) (retained for reference)."""
     return p * (1.0 - p)
 
 
@@ -397,7 +400,7 @@ def apply_a5_ladder(floor: dict, power_results: list) -> dict:
 # Driver
 # ---------------------------------------------------------------------------
 def run(out_dir=RESULTS_DIR, scale=1.0, cells_filter=None, workers=6,
-        unbound=False, repo=".", pilot=False):
+        unbound=False, repo=".", pilot=False, assemble_only=False):
     start_time = datetime.now(timezone.utc)
     t0 = time.time()
     os.makedirs(out_dir, exist_ok=True)
@@ -412,7 +415,13 @@ def run(out_dir=RESULTS_DIR, scale=1.0, cells_filter=None, workers=6,
     print(f"[wo003c] {len(cells)} cells, scale={scale}, workers={workers}")
 
     results: dict[str, dict] = {}
-    if workers > 1 and len(cells) > 1:
+    if assemble_only:
+        for name, _spec in cells:
+            path = os.path.join(out_dir, f"checkpoint_wo003c_{name}.json")
+            with open(path) as f:
+                results[name] = json.load(f)
+            print(f"  [{name}] loaded")
+    elif workers > 1 and len(cells) > 1:
         with ProcessPoolExecutor(max_workers=workers) as ex:
             futs = {ex.submit(_run_one, spec): name for name, spec in cells}
             for fut in as_completed(futs):
@@ -513,11 +522,14 @@ def main():
     ap.add_argument("--cells", nargs="*", default=None, help="subset of cell names")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--unbound", action="store_true")
+    ap.add_argument("--assemble-only", action="store_true",
+                    help="skip simulation; rebuild artifact from existing checkpoints")
     ap.add_argument("--out-dir", default=RESULTS_DIR)
     args = ap.parse_args()
     scale = args.scale if args.scale is not None else (0.001 if args.pilot else 1.0)
     run(out_dir=args.out_dir, scale=scale, cells_filter=args.cells,
-        workers=args.workers, unbound=args.unbound, pilot=args.pilot)
+        workers=args.workers, unbound=args.unbound, pilot=args.pilot,
+        assemble_only=args.assemble_only)
 
 
 if __name__ == "__main__":
