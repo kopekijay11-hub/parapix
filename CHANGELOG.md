@@ -9,6 +9,7 @@
 ### New features
 - **Prereg-hash binding**: `evaluate_mean`/`evaluate_sharpe` include `prereg_hash = content_hash(prereg)` in results. `verdict()` recomputes the hash and FAILs with `"prereg_hash mismatch or missing"` unless it matches exactly.
 - **Verdict semantics fix (Sharpe path)**: The CI condition now tests the **raw-scale** CI (`ci_raw_low`, `ci_raw_high`) against `minimum_effect`, mirroring the mean path's logic. Deflation (SR₀ shift) lives only in `corrected_p` (via DSR). The deflated CI is reported for provenance but does not gate the verdict.
+- **Additive warnings pass-through (WO-003c B4)**: `Results` gains a `warnings: tuple = ()` field and `verdict()` echoes `list(results.warnings)` under a new `"warnings"` key on every return path (PASS, FAIL, hash-mismatch). Purely additive: the PASS/FAIL logic and all existing keys are unchanged; `warnings` never alters the verdict. This carries the WO-003c small-N sample-V caution (A5 ladder) from the evaluation layer to the caller.
 
 ### Documentation
 - README: Added "Conjunction semantics" section explaining mean vs Sharpe path logic; "How to misuse this" section; "API stability statement".

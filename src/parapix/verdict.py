@@ -13,6 +13,7 @@ def verdict(prereg: PreReg, results: Results) -> dict:
             "reasons": ["prereg_hash mismatch or missing"],
             "prereg_hash": expected_hash,
             "git_sha": prereg.code_version["git_sha"],
+            "warnings": list(results.warnings),
         }
 
     git_sha = prereg.code_version["git_sha"]
@@ -44,5 +45,5 @@ def verdict(prereg: PreReg, results: Results) -> dict:
     if bars_level is None or ci_level is None or not (ci_level >= bars_level):
         reasons.append("ci_level below declared bar")
     if reasons:
-        return {"verdict": "FAIL", "reasons": reasons, "prereg_hash": expected_hash, "git_sha": git_sha}
-    return {"verdict": "PASS", "reasons": [], "prereg_hash": expected_hash, "git_sha": git_sha}
+        return {"verdict": "FAIL", "reasons": reasons, "prereg_hash": expected_hash, "git_sha": git_sha, "warnings": list(results.warnings)}
+    return {"verdict": "PASS", "reasons": [], "prereg_hash": expected_hash, "git_sha": git_sha, "warnings": list(results.warnings)}

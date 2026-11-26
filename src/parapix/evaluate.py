@@ -28,6 +28,7 @@ class Results:
     trial_sr_rule: Optional[Literal["sample", "null_theoretical"]] = None
     skew: Optional[float] = None
     kurtosis: Optional[float] = None
+    warnings: tuple = ()
 
 
 def evaluate_mean(returns, prereg: PreReg, n_perm, n_boot):
@@ -55,7 +56,7 @@ def evaluate_mean(returns, prereg: PreReg, n_perm, n_boot):
     )
 
 
-def evaluate_sharpe(returns, prereg: PreReg, trial_sharpes=None):
+def evaluate_sharpe(returns, prereg: PreReg, trial_sharpes=None, n_boot: int = 1999):
     """Deflated Sharpe Ratio (DSR) evaluation.
 
     N comes from prereg.n_trials — never a free caller parameter.
@@ -64,6 +65,10 @@ def evaluate_sharpe(returns, prereg: PreReg, trial_sharpes=None):
     If not given, V = 1 / (n_obs - 1) (null-theoretical) and
     trial_sr_rule = "null_theoretical"; if given, "sample".
     N=1: SR0 = 0 regardless.
+
+    ``n_boot`` (default 1999, unchanged) is the bootstrap resample count for
+    the Sharpe CI; a smaller value is an additive, opt-in diagnostic knob and
+    does not affect the DSR / corrected_p computation.
 
     estimate = SR - SR0; ci_low / ci_high = ci_sharpe bounds each shifted by
     SR0 (SR0 treated as a constant). minimum_effect is in per-period Sharpe
@@ -112,7 +117,7 @@ def evaluate_sharpe(returns, prereg: PreReg, trial_sharpes=None):
     estimate = sr_raw - sr0
     try:
         ci_raw_low, ci_raw_high = ci_sharpe(
-            x, level, prereg.seeds["permutation"]
+            x, level, prereg.seeds["permutation"], n_boot=n_boot
         )
     except (ValueError, FloatingPointError):
         ci_raw_low = float("nan")
