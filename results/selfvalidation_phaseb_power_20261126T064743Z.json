@@ -1,0 +1,141 @@
+{
+  "PYTHONHASHSEED": null,
+  "binding": {
+    "PYTHONHASHSEED": null,
+    "blas_threads": null,
+    "command_line": "/home/joshua/parapix/tools/run_phase_b.py --power-curve",
+    "dirty": false,
+    "git_sha": "88797a7c1b032361525aa3ef3b794589f051c1cc",
+    "numpy_version": "2.5.3",
+    "pip_freeze_hash": "33f8d24046fd322572c9ce4de69d9c61fd717617b0160c8e8cfa7d241efd9552",
+    "python_version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "runner_sha256": "47cadd0f4148020b28f24bf04959751c264fb2b797a674a354a28d966511f242",
+    "scipy_version": "1.18.1",
+    "start_dirty": false,
+    "start_sha": "88797a7c1b032361525aa3ef3b794589f051c1cc",
+    "start_untracked": [],
+    "untracked_files": []
+  },
+  "binding_status": "BOUND",
+  "command_line": "/home/joshua/parapix/tools/run_phase_b.py --power-curve",
+  "dirty": false,
+  "end_time_utc": "20261126T064743Z",
+  "git_sha": "88797a7c1b032361525aa3ef3b794589f051c1cc",
+  "level": 0.95,
+  "master_seed": 20261126,
+  "methods": [
+    "percentile",
+    "bootstrap_se_normal",
+    "studentized",
+    "bca_block",
+    "hac_delta"
+  ],
+  "n_boot": 999,
+  "n_obs": 1000,
+  "n_series": 1000,
+  "numpy_version": "2.5.3",
+  "pip_freeze_hash": "33f8d24046fd322572c9ce4de69d9c61fd717617b0160c8e8cfa7d241efd9552",
+  "power_curve": {
+    "arm": "power_curve_sharpe_iid",
+    "level": 0.95,
+    "master_seed": 20261126,
+    "methods": [
+      "percentile",
+      "bootstrap_se_normal",
+      "studentized",
+      "bca_block",
+      "hac_delta"
+    ],
+    "minimum_detectable_effect": 0.1,
+    "n_boot": 999,
+    "n_obs": 1000,
+    "n_series": 1000,
+    "pass_fractions": {
+      "0.0": 0.0502,
+      "0.05": 0.36419999999999997,
+      "0.1": 0.8846,
+      "0.15": 0.9986,
+      "0.2": 1.0,
+      "0.3": 1.0,
+      "0.5": 1.0
+    },
+    "per_method": {
+      "0.0": {
+        "bca_block": 0.052,
+        "bootstrap_se_normal": 0.05,
+        "hac_delta": 0.05,
+        "percentile": 0.05,
+        "studentized": 0.049
+      },
+      "0.05": {
+        "bca_block": 0.363,
+        "bootstrap_se_normal": 0.362,
+        "hac_delta": 0.36,
+        "percentile": 0.368,
+        "studentized": 0.368
+      },
+      "0.1": {
+        "bca_block": 0.887,
+        "bootstrap_se_normal": 0.882,
+        "hac_delta": 0.885,
+        "percentile": 0.884,
+        "studentized": 0.885
+      },
+      "0.15": {
+        "bca_block": 0.998,
+        "bootstrap_se_normal": 0.999,
+        "hac_delta": 0.998,
+        "percentile": 0.999,
+        "studentized": 0.999
+      },
+      "0.2": {
+        "bca_block": 1.0,
+        "bootstrap_se_normal": 1.0,
+        "hac_delta": 1.0,
+        "percentile": 1.0,
+        "studentized": 1.0
+      },
+      "0.3": {
+        "bca_block": 1.0,
+        "bootstrap_se_normal": 1.0,
+        "hac_delta": 1.0,
+        "percentile": 1.0,
+        "studentized": 1.0
+      },
+      "0.5": {
+        "bca_block": 1.0,
+        "bootstrap_se_normal": 1.0,
+        "hac_delta": 1.0,
+        "percentile": 1.0,
+        "studentized": 1.0
+      }
+    },
+    "sigma": 0.01,
+    "sr_grid": [
+      0.0,
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.3,
+      0.5
+    ],
+    "wall_clock_seconds": 173.93095541000366
+  },
+  "python_version": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "runner_sha256": "47cadd0f4148020b28f24bf04959751c264fb2b797a674a354a28d966511f242",
+  "scipy_version": "1.18.1",
+  "sigma": 0.01,
+  "sr_grid": [
+    0.0,
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.3,
+    0.5
+  ],
+  "start_time_utc": "20261126T064449Z",
+  "untracked_files": [],
+  "wall_clock_seconds": 173.94342732429504
+}
