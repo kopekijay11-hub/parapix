@@ -15,6 +15,7 @@
 - README: Added "Conjunction semantics" section explaining mean vs Sharpe path logic; "How to misuse this" section; "API stability statement".
 - New file `docs/threat-model.md`: What the prereg lock does/doesn't defend against.
 - DSR assumptions updated: rho=0.3 arm read 0.0081 vs 0.05 nominal (WO-003 artifact) — correlated trials deflate less than independence implies.
+- **WO-003c Phase B (sample-V over-deflation)**: bound sweep (R=2M/cell, n_obs=1000, artifact `results/wo003c_20261126T135642Z.json`). Sample-V exceedance is ~13× below null-theoretical at N=10 (a/b=0.075), rising to 0.71 at N=250. A4 floor = N=250 (paired one-sided 99% bound on a/b ≥ 0.5); A5 warning ladder fires on the floor branch → a small-N sample-V caution ships (applies below N=250; a PASS is conservative, a FAIL is weak evidence). Power is saturated at the registered SR grid (no power-branch firing). B1 re-derivation matches the library to ≤1e-6; B2 non-normality correction ≈3.5e-5 abs / 0.11% of se.
 
 ### Tests
 - New tests: hash match/mismatch/missing, dict rejection, Sharpe raw-CI pinning test, Results round-trip.

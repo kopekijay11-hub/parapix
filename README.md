@@ -124,3 +124,59 @@ Results (fraction DSR > 0.95 vs prediction):
 - AR(1): 0.11525 (prediction ~0.114) — over-rejects under dependence, consistent with variance inflation ~1.857x at phi=0.3 (SE understated ~1.36x)
 
 Warning: the sample-V estimate requires N>1 and is unstable for small N. The null-theoretical V (1/(n_obs-1)) is the recommended default when N is small; DSR against SR0 is not a size-calibrated FWER test under dependence.
+
+## WO-003c Phase B: Sample-V Over-Deflation
+
+The DSR's trial-variance estimate V can be taken two ways: the **null-theoretical** V = 1/(n_obs−1) (a fixed constant), or the **sample** V = variance across the N trial Sharpes (ddof=1). The sample V is itself an estimate and, at small N, is a noisy, *deflated* estimate of the true trial-SR dispersion. This section measures the finite-sample consequence with a bound simulation.
+
+Settings (bound artifact `results/wo003c_20261126T135642Z.json`, git_sha `cf7d51f`, dirty=false, BOUND): n_obs=1000, sigma=√(1/999)=0.03164, alpha=0.05, DSR>0.95 (z=1.644854), N grid {5,10,20,50,100,250}; R=2,000,000 per independent cell, 200,000 per rho/power cell, 400,000 return-series bridge, 10,000 per pass-fraction cell (n_boot=99, diagnostic); master_seed=20261126; 8 workers, 3.71 h wall. The driver `tools/sim_wo003c.py` calls the library `expected_max_sharpe`/`psr` and never re-derives the DSR (the `psr`/`dsr` linearity identity is asserted at start-up).
+
+### (B1) Library formula pinned + independent re-derivation
+
+`src/parapix/dsr.py` sha256 `d63517b0…`, scipy 1.18.1. `tools/verify_wo003c_b1b2.py` re-implements `expected_max_sharpe`/`psr`/`dsr` from the paper equations in a fresh process (own normal CDF/PPF, no `parapix.dsr` in the re-derivation path) and matches the library to **0.0 (≤1e-6) over 29,408 grid points**.
+
+### (B2) Non-normality / estimated-statistic correction (direct, no dsr call)
+
+Computed by direct threshold/root evaluation (no `dsr`, no Monte Carlo). The exact denominator (1 + ½·SR²) vs the linear (denominator = 1) threshold shifts the exceedance by ≈ **−3.5e-5 abs** at N=250, i.e. **≈0.11% of the per-trial SR std** se=0.03164 — matching the registered 3.8e-5 / 0.12% pin.
+
+### (B3) Independent-trials sweep — sample-V over-deflation
+
+Exceedance P(DSR>0.95) under the iid null; (a) sample-V, (b) null-theoretical, (d) leave-selected-out V; corr = corr(SR_max, sample std).
+
+| N | (a) sample-V | (b) null-theo | (d) leave-out | (a)/(b) | corr(SR_max, std) |
+|---|---|---|---|---|---|
+| 5 | 0.001147 | 0.011499 | 0.029416 | 0.100 | +0.631 |
+| 10 | 0.000490 | 0.006555 | 0.014908 | 0.075 | +0.626 |
+| 20 | 0.000608 | 0.004014 | 0.007836 | 0.151 | +0.581 |
+| 50 | 0.000795 | 0.002283 | 0.003554 | 0.348 | +0.490 |
+| 100 | 0.000788 | 0.001560 | 0.002056 | 0.505 | +0.416 |
+| 250 | 0.000661 | 0.000931 | 0.001138 | 0.711 | +0.323 |
+
+(b) reproduces the Phase A closed form. (a)/(b) rises from ~0.08 at N=10 to ~0.71 at N=250: sample-V over-deflation is severe at small N and vanishes by N≈250. Decomposition (b)/(a) = [(b)/(c)]·[(c)/(a)]: the two factors are reported separately — (b)/(a) = 13.4 at N=10 (10.0/6.6/2.9/2.0/1.4 at N=5/20/50/100/250). (a) at N=5 (0.00115) sits marginally above the Phase A band [1e-4,1e-3]; all other (a) cells and the (d) N=10 cell (0.0149) are inside their registered ranges. The mechanism correlation is **higher than Phase A's 0.30–0.45 (N=10) / 0.15–0.25 (N=50) guess** (measured +0.63 / +0.49) but falls with N as predicted — reported as a falsified-high hand estimate, not a defect.
+
+### (A2) Correlated trials (shared factor) — sample-V vs oracle-V
+
+Sample-V exceedance vs the oracle comparator V=(1−rho)sigma² (the wrong benchmark for correlated trials):
+
+| N | rho | sample-V | oracle-V |
+|---|---|---|---|
+| 10 | 0.3 | 0.00751 | 0.01412 |
+| 10 | 0.6 | 0.02422 | 0.02782 |
+| 10 | 0.9 | 0.04369 | 0.04378 |
+| 50 | 0.3 | 0.00630 | 0.00871 |
+| 50 | 0.6 | 0.02235 | 0.02396 |
+| 50 | 0.9 | 0.04277 | 0.04284 |
+
+All six sample-V cells are inside their Phase A ranges. For correlated trials the null-theoretical V is the wrong benchmark (oracle-V ≠ sample-V except as rho→1).
+
+### (B5) Power cost and conjunction
+
+DSR-only power (theoretical-V minus sample-V) at the registered SR grid {0.10,0.15,0.20} × N {10,50,100,250} is **saturated at ≈1.0 for both rules (gap ≈0)** at n_obs=1000 — the A3 hand-predictions (0.48/0.94/0.998) are falsified; the power branch of the warning ladder does not fire. The evaluate_sharpe conjunction pass-fraction is likewise 1.000 at N∈{10,50}, SR∈{0.10,0.15,0.20}.
+
+### (B6) Convergence and budget
+
+Return-series bridge: N=10 sample-V exceedance at 2M (0.0004895) vs 400k (0.00055), z=−1.50 — agree within 2σ. Counts/seeds are the registered A6 values; total wall 3.71 h on 8 workers.
+
+### (A4) Floor rule and (A5) warning ladder
+
+A4 floor (paired common-random-number draws, one-sided 99% lower bound on (a)/(b) ≥ 0.5): **floor N = 250** (lwr99 0.680 at N=250; 0.482 at N=100 is below 0.5), gap 150 to the next grid point below. A5 ladder: the floor branch fires → **a warnings entry ships, applying below N=250**; direction: *under sample-V at small N a PASS is conservative and a FAIL is weak evidence.* The power branch does not fire. The `Results.warnings` / `verdict()` pass-through (v0.2, B4) is the channel that carries this caution to callers.
