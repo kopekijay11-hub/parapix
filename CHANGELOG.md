@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1 — 2026-11-27
+
+### Changed
+- **Python floor**: `requires-python` lowered from `>=3.14` to `>=3.12` (3.11 was the original target but numpy 2.5.3 and scipy 1.18.1 require Python >=3.12; fallback applied per WO-009 STOP rule).
+- **Dependency ranges**: numpy, scipy, pandas, pytest are now ranges with the current pins as lower bounds (`numpy>=2.5.3,<3`, `scipy>=1.18.1,<2`, `pandas>=3.0.5,<4`, `pytest>=9.1.1,<10`); pytest moved to an optional `test` extra.
+- **Validated-environment pins** moved to `constraints-ci.txt` (`numpy==2.5.3`, `scipy==1.18.1`, `pandas==3.0.5`, `pytest==9.1.1`); the 3.14 CI jobs install with `-c constraints-ci.txt`.
+
+### Added
+- **PyPI metadata**: project URLs (Source, Issues, Changelog), classifiers (Development Status :: 4 - Beta, MIT License, Python 3.12/3.13/3.14), keywords (deflated sharpe, multiple testing, backtesting, strategy validation).
+- Empty `py.typed` marker in the package.
+
+
 ## 0.2.0 — 2026-11-27
 
 ### New features

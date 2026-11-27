@@ -8,29 +8,91 @@ on:
 
 jobs:
   tests:
-    name: Tests (no arch)
+    name: Tests (no arch) — Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: ${{ matrix.python-version }}
       - name: Install project
-        run: pip install -e .
+        run: |
+          if [ "${{ matrix.python-version }}" = "3.14" ]; then
+            pip install -e ".[test]" -c constraints-ci.txt
+          else
+            pip install -e ".[test]"
+          fi
       - name: Run tests
         run: python -m pytest tests/ -q
+      - name: Build wheel
+        run: |
+          pip install build
+          python -m build --wheel
+      - name: Install wheel into fresh venv
+        run: |
+          python -m venv /tmp/venv
+          if [ "${{ matrix.python-version }}" = "3.14" ]; then
+            /tmp/venv/bin/pip install dist/*.whl -c constraints-ci.txt
+          else
+            /tmp/venv/bin/pip install dist/*.whl
+          fi
+      - name: Run worked example
+        run: /tmp/venv/bin/python examples/worked_example.py
 
   tests-arch:
-    name: Tests (with arch)
+    name: Tests (with arch) — Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.13', '3.14']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: ${{ matrix.python-version }}
       - name: Install project
-        run: pip install -e .
+        run: |
+          if [ "${{ matrix.python-version }}" = "3.14" ]; then
+            pip install -e ".[test]" -c constraints-ci.txt
+          else
+            pip install -e ".[test]"
+          fi
       - name: Install arch
         run: pip install arch==9.0.0
       - name: Run tests
         run: python -m pytest tests/ -q
+      - name: Build wheel
+        run: |
+          pip install build
+          python -m build --wheel
+      - name: Install wheel into fresh venv
+        run: |
+          python -m venv /tmp/venv
+          if [ "${{ matrix.python-version }}" = "3.14" ]; then
+            /tmp/venv/bin/pip install dist/*.whl -c constraints-ci.txt
+          else
+            /tmp/venv/bin/pip install dist/*.whl
+          fi
+      - name: Run worked example
+        run: /tmp/venv/bin/python examples/worked_example.py
+
+  lowest-direct:
+    name: Lowest-direct (floor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@v4
+      - name: Install project (lowest-direct)
+        run: |
+          uv venv .venv
+          uv pip install --python .venv/bin/python --resolution lowest-direct -e ".[test]"
+      - name: Run tests
+        run: .venv/bin/python -m pytest tests/ -q
