@@ -18,6 +18,7 @@ class PreReg:
     split_scheme: str
     bars: dict
     code_version: dict
+    search_space: str = ""
 
 
 def _canonical(prereg):
@@ -65,6 +66,8 @@ def validate(prereg):
         raise ValueError("code_version.git_sha must be a str")
     if "dirty" not in prereg.code_version or not isinstance(prereg.code_version["dirty"], bool):
         raise ValueError("code_version.dirty must be a bool")
+    if not isinstance(prereg.search_space, str):
+        raise ValueError("search_space must be a str")
     try:
         datetime.fromisoformat(prereg.created_utc.replace("Z", "+00:00"))
     except Exception:
@@ -73,6 +76,18 @@ def validate(prereg):
         raise ValueError("run_id must be non-empty")
     if not isinstance(prereg.split_scheme, str) or not prereg.split_scheme.strip():
         raise ValueError("split_scheme must be non-empty")
+
+
+
+def data_fingerprint(returns):
+    import numpy as np
+
+    x = np.asarray(returns, dtype=np.float64).reshape(-1)
+    h = hashlib.sha256()
+    h.update(str(x.shape[0]).encode("ascii"))
+    h.update(b":")
+    h.update(x.tobytes())
+    return h.hexdigest()
 
 
 def content_hash(prereg):

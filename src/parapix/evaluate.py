@@ -5,7 +5,23 @@ from typing import Literal, Optional
 from parapix.bootstrap import ci_mean, ci_sharpe
 from parapix.dsr import dsr, expected_max_sharpe, sharpe_stats
 from parapix.permtest import permutation_pvalue
-from parapix.prereg import PreReg, content_hash
+import importlib.metadata
+
+from parapix.prereg import PreReg, content_hash, data_fingerprint
+
+try:
+    from parapix import __version__ as _PKG_VERSION
+except Exception:  # pragma: no cover
+    _PKG_VERSION = "0.3.0"
+
+
+
+
+def _parapix_version():
+    try:
+        return importlib.metadata.version("parapix")
+    except importlib.metadata.PackageNotFoundError:
+        return _PKG_VERSION
 
 
 @dataclass(frozen=True)
@@ -29,6 +45,8 @@ class Results:
     skew: Optional[float] = None
     kurtosis: Optional[float] = None
     warnings: tuple = ()
+    data_fingerprint: Optional[str] = None
+    parapix_version: Optional[str] = None
 
 
 def evaluate_mean(returns, prereg: PreReg, n_perm, n_boot):
@@ -53,6 +71,8 @@ def evaluate_mean(returns, prereg: PreReg, n_perm, n_boot):
         p_method="signflip_permutation_bonferroni",
         prereg_hash=prereg_hash,
         p_raw=p_raw,
+        data_fingerprint=data_fingerprint(returns),
+        parapix_version=_parapix_version(),
     )
 
 
@@ -155,4 +175,6 @@ def evaluate_sharpe(returns, prereg: PreReg, trial_sharpes=None, n_boot: int = 1
         skew=skew,
         kurtosis=kurt,
         warnings=warnings,
+        data_fingerprint=data_fingerprint(returns),
+        parapix_version=_parapix_version(),
     )

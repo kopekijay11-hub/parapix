@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — unreleased
+
+### Added
+- **Pre-reg search-space declaration**: `PreReg` gains `search_space: str = ""`, declared alongside `n_candidates_tried` / `n_trials`. It participates in `content_hash`, so new preregs' hashes differ from 0.2.x; the binding still only requires evaluate-time == verdict-time consistency on the same object.
+- **Data fingerprint**: `Results` gains `data_fingerprint` (SHA-256 over dtype/shape-normalized evaluated values), stamped by `evaluate_mean` and `evaluate_sharpe`.
+- **Look counter**: `verdict()` accepts `prior_results=`; when the same fingerprint appears under more than one prereg hash, a warning is appended (`"this data has been evaluated under K prereg hashes"`). Same-hash re-runs stay silent; warnings never gate the verdict.
+- **Version stamp**: `Results` gains `parapix_version`, stamped at evaluation time and echoed by `verdict()`.
+- **Verdict conditional line**: PASS verdicts include a `search_space` key — the declared description, or an explicit "not declared" line so silence cannot read as completeness.
+
+### Changed
+- `verdict()` signature is now `verdict(prereg, results, prior_results=None)` (additive).
+
 ## 0.2.1 — 2026-11-27
 
 ### Changed

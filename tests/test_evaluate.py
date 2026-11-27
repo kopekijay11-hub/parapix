@@ -44,6 +44,8 @@ def test_results_roundtrip():
         "p_method": res.p_method,
         "prereg_hash": res.prereg_hash,
         "p_raw": res.p_raw,
+        "data_fingerprint": res.data_fingerprint,
+        "parapix_version": res.parapix_version,
     }
     
     from parapix.evaluate import Results
@@ -59,3 +61,5 @@ def test_results_roundtrip():
     assert res.p_method == res2.p_method
     assert res.prereg_hash == res2.prereg_hash
     assert res.p_raw == res2.p_raw
+    assert res.data_fingerprint == res2.data_fingerprint
+    assert res.parapix_version == res2.parapix_version
