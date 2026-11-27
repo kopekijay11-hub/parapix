@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.2.0 — 2026-11-27
 
 ### New features
 - **Worked example (WO-007)**: `examples/worked_example.py` runs end-to-end on synthetic data — the best-of-N trap (FAIL), the prereg/DSR correction, a planted edge (PASS, true Sharpe 0.5), and the small-N sample-V warning. README "Worked example" section reproduces its output verbatim.
