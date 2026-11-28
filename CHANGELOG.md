@@ -8,6 +8,7 @@
 - **Look counter**: `verdict()` accepts `prior_results=`; when the same fingerprint appears under more than one prereg hash, a warning is appended (`"this data has been evaluated under K prereg hashes"`). Same-hash re-runs stay silent; warnings never gate the verdict.
 - **Version stamp**: `Results` gains `parapix_version`, stamped at evaluation time and echoed by `verdict()`.
 - **Verdict conditional line**: PASS verdicts include a `search_space` key — the declared description, or an explicit "not declared" line so silence cannot read as completeness.
+- **Plain-language verdict layer (WO-011)**: new module `src/parapix/plain.py` with `plain_verdict(prereg, results, prior_results=None) -> VerdictState` and `render(...) -> str`, plus `VerdictState` enum and `VerdictReport` dataclass. States: STRONG / PROMISING / NO_EVIDENCE / INSUFFICIENT_DATA. Presentation only; no statistic, test, seed, or Results field changed; state is not stored in Results and never enters any hash. Thresholds in one versioned table `THRESHOLDS` (`PLAIN_VERDICT_VERSION = "1.0.0"`), printed in every rendered report.
 
 ### Changed
 - `verdict()` signature is now `verdict(prereg, results, prior_results=None)` (additive).

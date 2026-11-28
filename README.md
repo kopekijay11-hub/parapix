@@ -180,6 +180,32 @@ Return-series bridge: N=10 sample-V exceedance at 2M (0.0004895) vs 400k (0.0005
 ### (A4) Floor rule and (A5) warning ladder
 
 A4 floor (paired common-random-number draws, one-sided 99% lower bound on (a)/(b) ≥ 0.5): **floor N = 250** (lwr99 0.680 at N=250; 0.482 at N=100 is below 0.5), gap 150 to the next grid point below. A5 ladder: the floor branch fires → **a warnings entry ships, applying below N=250**; direction: *under sample-V at small N a PASS is conservative and a FAIL is weak evidence.* The power branch does not fire. The `Results.warnings` / `verdict()` pass-through (v0.2, B4) is the channel that carries this caution to callers.
+## Reading the verdict (plain-language layer)
+
+Parapix also ships a presentation-only layer (`parapix.plain`) that maps a
+`(prereg, results)` pair to one of four evidence-strength states: `STRONG`,
+`PROMISING`, `NO_EVIDENCE`, `INSUFFICIENT_DATA`. It never changes any
+statistic, test, seed, or Results field and never enters a hash.
+
+- `INSUFFICIENT_DATA` overrides every other state on thin data (n_obs < 30, or
+  the sample-V small-N warning is present).
+- Otherwise the state bands on `corrected_p` vs `prereg.alpha`:
+  `STRONG` if `corrected_p <= 0.2 * alpha`, `PROMISING` if
+  `0.2 * alpha < corrected_p <= alpha`, `NO_EVIDENCE` if
+  `corrected_p > alpha`.
+- All thresholds live in one table, `parapix.plain.THRESHOLDS`, versioned
+  `PLAIN_VERDICT_VERSION = "1.0.0"`, printed in every rendered report.
+- Raw numbers remain under a `## Details` section; the verdict never replaces them.
+- State and PASS/FAIL can disagree: "State is a plain-language reading of
+  evidence strength; PASS/FAIL is the prereg-gated conjunction, and the two
+  can disagree."
+
+Usage:
+
+    from parapix.plain import plain_verdict, render
+    state = plain_verdict(prereg, results)
+    report = render(prereg, results)   # markdown, includes the threshold table
+
 ## Worked example
 
 Run:
