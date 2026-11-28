@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — unreleased
+## 0.3.0 — 2026-11-28
 
 ### Added
 - **Pre-reg search-space declaration**: `PreReg` gains `search_space: str = ""`, declared alongside `n_candidates_tried` / `n_trials`. It participates in `content_hash`, so new preregs' hashes differ from 0.2.x; the binding still only requires evaluate-time == verdict-time consistency on the same object.
